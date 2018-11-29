@@ -114,14 +114,14 @@ in rec {
         chmod +w ./yarn.lock
 
         yarn config --offline set yarn-offline-mirror ${offlineCache}
-        yarn config --offline set yarn-offline-mirror-pruning false
+        yarn config --offline set yarn-offline-mirror-pruning true
 
         ${copyCommands}
 
         # Do not look up in the registry, but in the offline cache.
         # TODO: Ask upstream to fix this mess.
+        sed -i -E 's|^(\s*resolved\s*")https?://.*(@types).*/|\1\2-|' yarn.lock
         sed -i -E 's|^(\s*resolved\s*")https?://.*/|\1|' yarn.lock
-
         ${workspaceDependencyLinks}
         yarn install ${lib.escapeShellArgs yarnFlags}
 
