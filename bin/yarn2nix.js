@@ -33,7 +33,7 @@ const remoteToString = function (remote) {
     {
       name = "${remote.file_name}";
       path = fetchurl {
-        name = "${remote.file_name}";
+        name = "${remote.drv_name}";
         url  = "${remote.url}";
         sha1 = "${remote.sha1}";
       };
@@ -52,6 +52,9 @@ const arrayToString = function (elements) {
   return `[
     ${elements.join("\n")}
   ]`;
+}
+const is_type = function (url) {
+  return url.includes("@types");
 }
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -89,12 +92,19 @@ function generateNix(lockedDependencies, local_deps_path, workspaces) {
     else {
       let [url, sha1] = dep["resolved"].split("#");
       let file_name = path.basename(url)
+      let drv_name = file_name
+      if (is_type(url)){
+        // Nix doesn't support special charaters in drv name
+        drv_name = file_name
+        file_name= "@types-" + file_name
+      }
       if (found.hasOwnProperty(file_name)) {
         continue;
       } else {
         found[file_name] = null;
       }
       remotePackages.push({
+        drv_name : drv_name,
         file_name: file_name,
         url: url,
         sha1: sha1
