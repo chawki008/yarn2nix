@@ -56,6 +56,10 @@ const arrayToString = function (elements) {
 const is_type = function (url) {
   return url.includes("@types");
 }
+const is_cypres = function (url) {
+  return url.includes("@cypress");
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 function generateNix(lockedDependencies, local_deps_path, workspaces) {
@@ -97,6 +101,12 @@ function generateNix(lockedDependencies, local_deps_path, workspaces) {
         // Nix doesn't support special charaters in drv name
         drv_name = file_name
         file_name= "@types-" + file_name
+      }
+      
+      if (is_cypres(url)){
+        // Nix doesn't support special charaters in drv name
+        drv_name = file_name
+        file_name= "@cypress-" + file_name
       }
       if (found.hasOwnProperty(file_name)) {
         continue;
