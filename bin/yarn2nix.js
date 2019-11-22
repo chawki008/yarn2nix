@@ -66,15 +66,54 @@ function generateNix(lockedDependencies, local_deps_path, workspaces) {
   let found = {};
 
   console.log(HEAD)
+  const dirs = p => fs.readdirSync(p).filter(f => fs.statSync(path.join(p, f)).isDirectory())
 
   let localPackages = [];
   for (let i in workspaces) {
-    localPackages.push({
-        name: workspaces[i],
-        path: local_deps_path ? local_deps_path + '/' + workspaces[i] : path.resolve('./' + workspaces[i]) 
-    })
+    if (Array.isArray(workspaces[i])) {
+      let subWorkspaces = workspaces[i];
+      for (let k in subWorkspaces) {
+        // console.log("Workspaces");
+        // console.log(Array.isArray(subWorkspaces[k]));
+        // console.log(Array.isArray(subWorkspaces));
+        // console.log(subWorkspaces[k].slice(-1));
+        // console.log("Workspaces");
+        if (subWorkspaces[k].slice(-1) === "*") {
+          let subLocalDeps = dirs(local_deps_path + '/' +subWorkspaces[k].slice(0, -2));
+          for (let j in subLocalDeps) {
+            localPackages.push({
+              name: subWorkspaces[k].slice(0, -1) + subLocalDeps[j],
+              path: local_deps_path ? local_deps_path + '/' + subWorkspaces[k].slice(0, -1) + subLocalDeps[j] : path.resolve('./' + subLocalDeps[j])
+            })
+          }
+        }
+        else {
+          localPackages.push({
+            name: subWorkspaces[k],
+            path: local_deps_path ? local_deps_path + '/' + subWorkspaces[i] : path.resolve('./' + subWorkspaces[i])
+          })
+        }
+      }
+    }
+    else {
+      if (workspaces[i].slice(-1) === "*") {
+        let subLocalDeps = dirs(workspaces[i]);
+        for (let j in subLocalDeps) {
+          localPackages.push({
+            name: subLocalDeps[j],
+            path: local_deps_path ? local_deps_path + '/' + workspaces[i].slice(0, -1) + subLocalDeps[j] : path.resolve('./' + subLocalDeps[j])
+          })
+        }
+      }
+      else {
+        localPackages.push({
+          name: workspaces[i],
+          path: local_deps_path ? local_deps_path + '/' + workspaces[i] : path.resolve('./' + workspaces[i])
+        })
+      }
+    }
   };
-  
+
   let remotePackages = [];
   for (var depRange in lockedDependencies) {
     let dep = lockedDependencies[depRange];
@@ -85,7 +124,7 @@ function generateNix(lockedDependencies, local_deps_path, workspaces) {
       let name = local_path.split("/").slice(-1)[0]
       localPackages.push({
         name: name,
-        path: local_deps_path ? local_deps_path + local_path.substring(1) : path.resolve(local_path) 
+        path: local_deps_path ? local_deps_path + local_path.substring(1) : path.resolve(local_path)
       })
       if (found.hasOwnProperty(name)) {
         continue;
@@ -97,16 +136,16 @@ function generateNix(lockedDependencies, local_deps_path, workspaces) {
       let [url, sha1] = dep["resolved"].split("#");
       let file_name = path.basename(url)
       let drv_name = file_name
-      if (is_type(url)){
+      if (is_type(url)) {
         // Nix doesn't support special charaters in drv name
         drv_name = file_name
-        file_name= "@types-" + file_name
+        file_name = "@types-" + file_name
       }
-      
-      if (is_cypres(url)){
+
+      if (is_cypres(url)) {
         // Nix doesn't support special charaters in drv name
         drv_name = file_name
-        file_name= "@cypress-" + file_name
+        file_name = "@cypress-" + file_name
       }
       if (found.hasOwnProperty(file_name)) {
         continue;
@@ -114,7 +153,7 @@ function generateNix(lockedDependencies, local_deps_path, workspaces) {
         found[file_name] = null;
       }
       remotePackages.push({
-        drv_name : drv_name,
+        drv_name: drv_name,
         file_name: file_name,
         url: url,
         sha1: sha1
@@ -139,7 +178,7 @@ function getSha1(url) {
       const hash = crypto.createHash('sha1');
       if (statusCode !== 200) {
         const err = new Error('Request Failed.\n' +
-                          `Status Code: ${statusCode}`);
+          `Status Code: ${statusCode}`);
         // consume response data to free up memory
         res.resume();
         reject(err);
